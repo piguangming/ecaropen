@@ -1,0 +1,458 @@
+<html>
+<head>
+    <title></title>
+    <meta chaset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <meta name="format-detection" content="telephone=no,email=no" />
+        <meta name="keywords" content="滴滴电商开放平台demo">
+        <meta name="description" content="滴滴电商开放平台demo">
+        <title>滴滴电商开放平台demo</title>
+    <style type="text/css">
+        /**
+         * html5doctor.com Reset Stylesheet v1.6.1 (http://html5doctor.com/html-5-reset-stylesheet/)
+         * Richard Clark (http://richclarkdesign.com)
+         * http://cssreset.com
+         */
+        html, body, div, span, object, iframe,
+        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+        abbr, address, cite, code,
+        del, dfn, em, img, ins, kbd, q, samp,
+        small, strong, sub, sup, var,
+        b, i,
+        dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend,
+        table, caption, tbody, tfoot, thead, tr, th, td,
+        article, aside, canvas, details, figcaption, figure,
+        footer, header, hgroup, menu, nav, section, summary,
+        time, mark, audio, video {
+            margin:0;
+            padding:0;
+            border:0;
+            outline:0;
+            vertical-align:baseline;
+            background:transparent;
+            list-style: none;
+            font-weight: normal;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+        body {
+            line-height:1;
+        }
+        article,aside,details,figcaption,figure,
+        footer,header,hgroup,menu,nav,section {
+            display:block;
+        }
+        nav ul {
+            list-style:none;
+        }
+        blockquote, q {
+            quotes:none;
+        }
+        blockquote:before, blockquote:after,
+        q:before, q:after {
+            content:'';
+            content:none;
+        }
+        a {
+            margin:0;
+            padding:0;
+            font-size:100%;
+            vertical-align:baseline;
+            background:transparent;
+            text-decoration: none;
+        }
+        /* change colours to suit your needs */
+        ins {
+            background-color:#ff9;
+            color:#000;
+            text-decoration:none;
+        }
+        /* change colours to suit your needs */
+        mark {
+            background-color: #ff9;
+            color: #000;
+            font-style: italic;
+            font-weight: bold;
+        }
+        del {
+            text-decoration: line-through;
+        }
+        abbr[title], dfn[title] {
+            border-bottom: 1px dotted;
+            cursor: help;
+        }
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+        /* change border colour to suit your needs */
+        hr {
+            display: block;
+            height: 1px;
+            border: 0;
+            border-top: 1px solid #cccccc;
+            margin: 1em 0;
+            padding: 0;
+        }
+        input, select {
+            vertical-align: middle;
+        }
+    </style>
+    <style type="text/css">
+        body{
+            padding: 0 20px;
+        }
+        button:focus{
+            outline: none;
+        }
+        .btn{
+            width: 100%;
+            height: 40px;
+            border: none;
+            background-color: #ff8903;
+            line-height: 40px;
+            text-align: center;
+            margin-top: 20px;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 18px;
+        }
+    </style>
+    <script src="http://cdn.bootcss.com/jquery/2.1.4/jquery.js"></script>
+    <script type="text/javascript">    
+        /*
+        didi.bridge.js
+        version 2.0.1
+        update: 1. 增加调起支付方法 pay_wx xxyan
+                2. 增加打开新webview（可支付）方法 dnOpenNativeWebPage xxyan
+                2. ua判断增加 ios xxyan
+        ps: 引入之前的DidiBridge.js 会导致无法使用端方法
+        */
+        (function(scope, $){
+            var didi = dd = window.didi || window.dd || {};
+            var ns = {};
+            /*
+            jsbridge
+            */
+
+            ns = {
+                _DD_bridge: function(){
+                    this.init();
+                    this.bridge;
+                    this.timer;
+                },
+            }
+
+            ns._DD_bridge.prototype = {
+                constructor: ns._DD_bridge,
+                init: function(){
+                    this.isReady = false;
+                    this._initBridge();
+                },
+                _initBridge: function(_scope,ts){
+                    var _this = _scope || this,
+                        ts = ts || 0;
+                    _this.t2 = null;
+                    if(!scope.DidiJSBridge){
+                        if(/android/i.test(navigator.userAgent.toLowerCase())){
+                            if(!_this.t2){
+                                _this.t2 = setTimeout(function(){
+                                    if(ts > 100){
+                                        clearTimeout(_this.t2);
+                                        _this.t2 = null;
+                                        return;
+                                    }
+                                    ts++;
+                                    _this._initBridge(_this, ts);
+                                },100);
+                            }
+                        }else{
+                            document.addEventListener('DidiJSBridgeReady', function(event) {
+                                _this.bridge = event.bridge
+                                _this.isReady = true;
+                                // Start using the bridge
+                                _this.bridge.init(function(data, responseCallback) {
+                                    alert("Got data " + JSON.stringify(data))
+                                    if (responseCallback) {
+                                       responseCallback("Right back atcha!")
+                                    }
+                                })
+                            }, false)
+                        }
+                    }else{
+                        _this.isReady = true;
+                        _this.bridge = scope.DidiJSBridge;
+                    }
+                },
+                _callHandler: function(methodName, params, fn){
+                    var _this = this;
+                    this._waitReady().done(function(){
+                        if(_this.bridge){
+                            _this.bridge.callHandler(methodName, params, function(data) {
+                                var obj = {};
+                                if(typeof data === 'string'){
+                                    obj = JSON.parse(data);
+                                }else{
+                                    obj = data;
+                                }
+                                fn(obj);
+                            });
+                            
+                        }
+                    }).fail(function(data){
+                        console.log('didiBridge: ' + JSON.stringify(data));
+                    });
+                },
+                _registerHandler: function(methodName, fn){
+                    var _this = this;
+                    if(_this.bridge){
+                        _this.bridge.registerHandler(methodName, function(data) {
+                             fn(data);
+                        });
+                    }else{
+                        console.log('didiBridge: register fail');
+                    }
+                },
+                _waitReady: function(){
+                    var _this = this,
+                        deff = $.Deferred(),
+                        times = 0;
+                    if(_this.isReady){
+                        deff.resolve();
+                    }else{
+                        if(!_this.t1){
+                            _this.t1 = setInterval(function(){
+                                // 失败自动尝试
+                                if(_this.isReady){
+                                    deff.resolve();
+                                    clearInterval(_this.t1);
+                                    _this.t1 = null;
+                                }else if(times > 100){
+                                    clearInterval(_this.t1);
+                                    _this.t1 = null;
+                                    deff.reject('检测DidiJSBridge注册超时');
+                                }
+                                times++;
+                            },100);
+                        }   
+                    }
+                    return deff;
+                },
+                getUserInfo: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('getUserInfo',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                getSystemInfo: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('getSystemInfo',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                getLocationInfo: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('getLocationInfo',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                getContacts: function(obj){
+                    var deff = $.Deferred();
+                    this._callHandler('getContacts',obj,function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                callNativeLogin: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('callNativeLogin',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                callNativeLoginWithCallback: function(obj){
+                    var deff = $.Deferred();
+                    this._callHandler('callNativeLoginWithCallback',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                openNativeWebPage: function(obj){
+                    var deff = $.Deferred();
+                    if(didi.is('didi')){
+                        this._callHandler('openNativeWebPage',obj,function(data){
+                            deff.resolve(data);
+                        });
+                    }else{
+                        location.href = obj.url;
+                    }
+                    return deff;
+                },
+                dnOpenNativeWebPage: function(obj){
+                    var deff = $.Deferred();
+                    if(didi.is('didi')){
+                        this._callHandler('dnOpenNativeWebPage',obj,function(data){
+                            deff.resolve(data);
+                        });
+                    }else{
+                        location.href = obj.url;
+                    }
+                    return deff;
+                },
+                page_refresh: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('page_refresh',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                page_close: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('page_close',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                pay_wx: function(obj){
+                    var deff = $.Deferred();
+                    if(!didi.is('android')) {
+                        this._registerHandler('paybackWX', function (data) {
+                            if(Object.prototype.toString.call(data) === '[object String]'){
+                                data = JSON.parse(data);
+                            }
+                            deff.resolve(data);
+                        });
+                    }else{
+                        window.paybackWXA = function(data){
+                            deff.resolve(data);
+                        };
+                    }
+                    this._callHandler('payByWX',obj); 
+                    return deff;
+                },
+                init_entrance: function(obj){
+                    var deff = $.Deferred();
+                    this._callHandler('init_entrance',obj,function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                show_entrance: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('show_entrance',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                hide_entrance: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('hide_entrance',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                invoke_entrance: function(){
+                    var deff = $.Deferred();
+                    this._callHandler('invoke_entrance',{},function(data){
+                        deff.resolve(data);
+                    });
+                    return deff;
+                },
+                /********************************
+                    autoLogin 会检测用户是否登录  
+                    1.未登录用户跳转至登录页  
+                    2.已登录用户在done里面执行回调
+                ********************************/
+                autoLogin: function(){
+                    var deff = $.Deferred(),
+                        _this = this;
+                    this.getUserInfo().done(function(obj){
+                        if(obj.token){
+                            deff.resolve(obj);
+                        }else{
+                            _this.callNativeLoginWithCallback().done(function(s_obj){
+                                if(s_obj.userInfo.token){
+                                    deff.resolve(s_obj);
+                                }else{
+                                    deff.reject(s_obj);
+                                }
+                            }); 
+                        }
+                    });
+                    return deff; 
+                }
+            }
+
+            /*
+                ua判断
+            */
+            ns.ua = function(key){
+                var a = {
+                    ios: /iphone|ipad|ipod/,
+                    android: /android/i,
+                    iphone: /iphone/i,
+                    ipad: /ipad/i,
+                    ipod: /ipod/i,
+                    weixin: /micromessenger/i,
+                    mqq: /QQ\//i,
+                    app: /didi.passenger/i,
+                    sdk: /didi.sdk/i,
+                    didi: /didi/i,
+                    alipay: /aliapp/i,
+                    chrome: /chrome\//i
+                };
+                var uAgent = navigator.userAgent.toLowerCase();
+                if(key in a){
+                    return a[key].test(uAgent);
+                }else{
+                    console.warn('库中没有你想判断ua类型');
+                }
+            }
+
+
+            didi = {
+                is: ns.ua,
+                bridge: new ns._DD_bridge,
+                app: new ns._DD_bridge
+            }
+
+            window.didi = window.dd = didi;
+
+        })(window, jQuery || Zepto);
+    </script>
+</head>
+<body>
+    <div class="mod-demos" id="demos">
+        <button data-method="getUserInfo" class="bridge btn" type="button">获取用户信息</button>
+        <button data-method="getSystemInfo" class="bridge btn" type="button">获取系统信息</button>
+        <button data-method="getLocationInfo" class="bridge btn" type="button">获取位置信息</button>
+        <button data-method="callNativeLoginWithCallback" class="bridge btn" type="button">调起登录</button>
+        <button data-method="pay_wx" class="bridge btn" type="button">调起支付</button>
+        <button data-method="is" class="is btn" type="button">是否滴滴端内</button>
+    </div>
+    <script type="text/javascript">
+        var params = {
+            'pay_wx':{'package': 'Sign=WXPay', 'appid': 'wxd5b252a1660012b4', 'sign': '57c11c4ebb5baf431e109d8f2f62b71b92ae87ae', 'appkey': 'HOi7I4luwZRSBSqCcvDnzDjmCJeIjHDYsSZDnh3mIPEJ0wggrlzVTPJt2V7hxGarZ7ZMiZ4Wg0Ck7OxXB2QVO2QKRRYlZ5foCbDn6DggINxJ41DAYVsHUdoG2NuqO0KS', 'partnerid': '1217814801', 'prepayid': '92010390101602184264e348a8630408', 'noncestr': '8358672', 'timestamp': '1455830703'}
+        };
+        var $demos = $('#demos');
+        $demos.on('click', '.bridge', function(){
+            var method = $(this).data('method');
+            didi.bridge[method](params[method]).then(function(data){
+                alert(JSON.stringify(data));
+            });
+        }).on('click', '.is', function(){
+            alert(didi.is('didi'));
+        });
+    </script>
+</body>
+</html>
